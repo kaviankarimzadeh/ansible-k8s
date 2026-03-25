@@ -66,6 +66,7 @@
       - "kubelet={{ kubernetes_version }}-*"
       - "kubeadm={{ kubernetes_version }}-*"
       - "kubectl={{ kubernetes_version }}-*"
+      - cri-tools
     state: present
     update_cache: true
   when:
@@ -78,6 +79,7 @@
       - "kubelet-{{ kubernetes_version }}"
       - "kubeadm-{{ kubernetes_version }}"
       - "kubectl-{{ kubernetes_version }}"
+      - cri-tools
     state: present
     disable_excludes: kubernetes
   when:
