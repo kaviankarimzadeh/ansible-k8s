@@ -4,11 +4,10 @@ Deploy and manage highly-available Kubernetes clusters using Ansible. This proje
 
 ## Features
 
-- **Flexible topology**: Single-master or multi-master deployments via simple toggle
-- **HA control plane**: HAProxy + Keepalived on master nodes (multi-master mode)
+- **Flexible topology**: Single-master or multi-master deployments
+- **Load balancing**: HAProxy + Keepalived for on-prem; cloud LB support (Hetzner, AWS, etc.)
 - **Multi-OS support**: Debian/Ubuntu and RedHat/CentOS families
-- **Best practices**: Organized roles, idempotent tasks, fact-based OS detection
-- **Easy scaling**: Add nodes to inventory, rerun playbooks
+- **Production-ready**: Idempotent tasks, fact-based OS detection, best practices
 
 ## Project Structure
 
@@ -31,9 +30,15 @@ Deploy and manage highly-available Kubernetes clusters using Ansible. This proje
 
 ## Quick Start
 
-### 1. Configure Inventory
+### 1. Configure Inventory & Load Balancer Mode
 
-Edit `inventory/hosts.yml` with your node IPs and hostnames. Set `keepalived_priority` for each master (higher = takes VIP first).
+Edit `inventory/hosts.yml` with your node IPs and hostnames.
+
+In `inventory/group_vars/all.yml`, set:
+- `lb_type: cloud` for external load balancers (Hetzner LB, AWS NLB, etc.) — skips HAProxy/Keepalived
+- `lb_type: haproxy` for on-prem HA with HAProxy + Keepalived on masters
+
+Then set `k8s_api_vip` to your load balancer IP or VIP address.
 
 ### 2. Test Connectivity
 
