@@ -1,0 +1,57 @@
+---
+# ── Pre-flight: skip if cluster is already initialized ──
+- name: Check if cluster is already initialized
+  ansible.builtin.stat:
+    path: /etc/kubernetes/admin.conf
+  register: kubeadm_admin_conf
+
+- name: Run kubeadm init
+  ansible.builtin.command: >-
+    kubeadm init
+      --config /etc/kubernetes/kubeadm-init.yml
+      --upload-certs
+  register: kubeadm_init_output
+  when: not kubeadm_admin_conf.stat.exists
+  changed_when: true
+
+# ── Configure kubectl first (needed for token commands) ──
+- name: Create .kube directory
+  ansible.builtin.file:
+    path: /root/.kube
+    state: directory
+    mode: "0700"
+
+- name: Copy admin.conf to root kubeconfig
+  ansible.builtin.copy:
+    src: /etc/kubernetes/admin.conf
+    dest: /root/.kube/config
+    remote_src: true
+    mode: "0600"
+
+# ── Extract join credentials ────────────────────────────
+- name: Create bootstrap token
+  ansible.builtin.command: kubeadm token create
+  register: token_output
+  changed_when: false
+
+- name: Get CA certificate hash
+  ansible.builtin.shell: >-
+    openssl x509 -pubkey -in /etc/kubernetes/pki/ca.crt
+    | openssl rsa -pubin -outform der 2>/dev/null
+    | openssl dgst -sha256 -hex
+    | awk '{print $NF}'
+  register: ca_hash_output
+  changed_when: false
+
+- name: Upload certs and get certificate key
+  ansible.builtin.command: kubeadm init phase upload-certs --upload-certs
+  register: cert_key_output
+  changed_when: false
+  when: multi_master
+
+- name: Set join credentials as facts
+  ansible.builtin.set_fact:
+    kubeadm_token: "{{ token_output.stdout }}"
+    kubeadm_ca_cert_hash: "{{ ca_hash_output.stdout }}"
+    kubeadm_certificate_key: "{{ cert_key_output.stdout_lines[-1] | default('') }}"
+  run_once: true

@@ -1,0 +1,38 @@
+---
+# ── Pre-flight: skip if this node already joined ────────
+- name: Check if node already joined the cluster
+  ansible.builtin.stat:
+    path: /etc/kubernetes/kubelet.conf
+  register: kubelet_conf
+
+- name: Deploy kubeadm join config for control-plane
+  ansible.builtin.template:
+    src: roles/k8s/templates/kubeadm-join-master.yml.j2
+    dest: /etc/kubernetes/kubeadm-join.yml
+    mode: "0600"
+  vars:
+    kubeadm_token: "{{ hostvars[k8s_init_node]['kubeadm_token'] }}"
+    kubeadm_ca_cert_hash: "{{ hostvars[k8s_init_node]['kubeadm_ca_cert_hash'] }}"
+    kubeadm_certificate_key: "{{ hostvars[k8s_init_node]['kubeadm_certificate_key'] }}"
+  when: not kubelet_conf.stat.exists
+
+- name: Join cluster as control-plane node
+  ansible.builtin.command: >-
+    kubeadm join --config /etc/kubernetes/kubeadm-join.yml
+  register: join_master_output
+  when: not kubelet_conf.stat.exists
+  changed_when: true
+
+# ── Configure kubectl for root on this master ──────────
+- name: Create .kube directory
+  ansible.builtin.file:
+    path: /root/.kube
+    state: directory
+    mode: "0700"
+
+- name: Copy admin.conf to root kubeconfig
+  ansible.builtin.copy:
+    src: /etc/kubernetes/admin.conf
+    dest: /root/.kube/config
+    remote_src: true
+    mode: "0600"

@@ -8,6 +8,9 @@ k8s_init_node: k8s-master01
 #   cloud   — skips HAProxy/Keepalived, uses external LB on k8s_api_port - The control plane endpoint uses k8s_api_port (6443) since the cloud LB forwards 6443 -> 6443
 lb_type: cloud
 
+# Run kubeadm init/join to bootstrap the cluster (set true when ready)
+cluster_bootstrap: false
+
 # ── Kubernetes ────────────────────────────────────
 kubernetes_version: "1.35.3"
 kubernetes_minor_version: "1.35"
