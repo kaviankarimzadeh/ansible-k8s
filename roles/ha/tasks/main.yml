@@ -1,0 +1,8 @@
+---
+- name: Install and configure HAProxy
+  ansible.builtin.import_tasks: install-haproxy.yml
+  tags: haproxy
+
+- name: Install and configure Keepalived
+  ansible.builtin.import_tasks: install-keepalived.yml
+  tags: keepalived

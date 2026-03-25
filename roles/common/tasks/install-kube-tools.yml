@@ -1,0 +1,114 @@
+---
+# ── Pre-flight: check if already installed ────────
+
+- name: Check kubeadm version
+  ansible.builtin.command: kubeadm version -o short
+  register: kubeadm_installed_version
+  changed_when: false
+  failed_when: false
+
+- name: Set kube tools needs install fact
+  ansible.builtin.set_fact:
+    kube_tools_needs_install: >-
+      {{ kubeadm_installed_version.rc != 0 or
+         kubernetes_version not in (kubeadm_installed_version.stdout | default('')) }}
+
+# ── Add Kubernetes repository ─────────────────────
+
+- name: Create apt keyrings directory (Debian/Ubuntu)
+  ansible.builtin.file:
+    path: /etc/apt/keyrings
+    state: directory
+    mode: "0755"
+  when:
+    - ansible_facts['os_family'] == "Debian"
+    - kube_tools_needs_install
+
+- name: Add Kubernetes GPG key (Debian/Ubuntu)
+  ansible.builtin.shell: >
+    curl -fsSL https://pkgs.k8s.io/core:/stable:/v{{ kubernetes_minor_version }}/deb/Release.key
+    | gpg --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg --yes
+  args:
+    creates: /etc/apt/keyrings/kubernetes-apt-keyring.gpg
+  when:
+    - ansible_facts['os_family'] == "Debian"
+    - kube_tools_needs_install
+
+- name: Add Kubernetes repository (Debian/Ubuntu)
+  ansible.builtin.apt_repository:
+    repo: >-
+      deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg]
+      https://pkgs.k8s.io/core:/stable:/v{{ kubernetes_minor_version }}/deb/ /
+    filename: kubernetes
+    state: present
+  when:
+    - ansible_facts['os_family'] == "Debian"
+    - kube_tools_needs_install
+
+- name: Add Kubernetes repository (RedHat/CentOS)
+  ansible.builtin.yum_repository:
+    name: kubernetes
+    description: Kubernetes
+    baseurl: "https://pkgs.k8s.io/core:/stable:/v{{ kubernetes_minor_version }}/rpm/"
+    gpgcheck: true
+    gpgkey: "https://pkgs.k8s.io/core:/stable:/v{{ kubernetes_minor_version }}/rpm/repodata/repomd.xml.key"
+    enabled: true
+    exclude: kubelet kubeadm kubectl cri-tools kubernetes-cni
+  when:
+    - ansible_facts['os_family'] == "RedHat"
+    - kube_tools_needs_install
+
+# ── Install kubeadm, kubelet, kubectl ─────────────
+
+- name: Install Kubernetes packages (Debian/Ubuntu)
+  ansible.builtin.apt:
+    name:
+      - "kubelet={{ kubernetes_version }}-*"
+      - "kubeadm={{ kubernetes_version }}-*"
+      - "kubectl={{ kubernetes_version }}-*"
+    state: present
+    update_cache: true
+  when:
+    - ansible_facts['os_family'] == "Debian"
+    - kube_tools_needs_install
+
+- name: Install Kubernetes packages (RedHat/CentOS)
+  ansible.builtin.dnf:
+    name:
+      - "kubelet-{{ kubernetes_version }}"
+      - "kubeadm-{{ kubernetes_version }}"
+      - "kubectl-{{ kubernetes_version }}"
+    state: present
+    disable_excludes: kubernetes
+  when:
+    - ansible_facts['os_family'] == "RedHat"
+    - kube_tools_needs_install
+
+# ── Pin package versions to prevent accidental upgrade ──
+
+- name: Hold Kubernetes packages (Debian/Ubuntu)
+  ansible.builtin.dpkg_selections:
+    name: "{{ item }}"
+    selection: hold
+  loop:
+    - kubelet
+    - kubeadm
+    - kubectl
+  when: ansible_facts['os_family'] == "Debian"
+
+- name: Pin Kubernetes packages (RedHat/CentOS)
+  ansible.builtin.lineinfile:
+    path: /etc/yum.conf
+    regexp: '^exclude=.*kubelet.*'
+    line: 'exclude=kubelet kubeadm kubectl'
+    state: present
+  when: ansible_facts['os_family'] == "RedHat"
+
+# ── Enable kubelet ────────────────────────────────
+
+- name: Enable and start kubelet
+  ansible.builtin.systemd:
+    name: kubelet
+    state: started
+    enabled: true
+    daemon_reload: true

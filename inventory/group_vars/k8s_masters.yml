@@ -1,0 +1,30 @@
+---
+# ── Control plane role ────────────────────────────
+node_role: master
+
+# ── HAProxy (runs on every master) ────────────────
+haproxy_version: "3.0.5"
+
+# ── Keepalived (runs on every master) ─────────────
+keepalived_version: "2.2.8"
+keepalived_vip: "{{ k8s_api_vip }}"
+keepalived_interface: eth0
+keepalived_router_id: 51
+keepalived_auth_pass: K8sHA!2025
+
+# ── API server extra args (uncomment to enable) ──
+# kube_apiserver_extra_args:
+#   bind-address: "{{ ansible_host }}"
+
+# ── Controller manager extra args (uncomment to enable) ──
+# kube_controller_extra_args:
+#   node-monitor-grace-period: 40s
+#   pod-eviction-timeout: 5m
+
+# ── Scheduler extra args (uncomment to enable) ───
+# kube_scheduler_extra_args:
+#   profiling: "false"
+
+# ── Etcd tuning ──────────────────────────────────
+# etcd_extra_args:
+#   quota-backend-bytes: "8589934592"

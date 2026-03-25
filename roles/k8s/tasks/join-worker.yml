@@ -1,0 +1,6 @@
+---
+- name: Deploy kubeadm join config for worker
+  ansible.builtin.template:
+    src: roles/k8s/templates/kubeadm-join-worker.yml.j2
+    dest: /etc/kubernetes/kubeadm-join.yml
+    mode: "0600"

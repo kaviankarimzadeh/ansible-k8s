@@ -1,0 +1,46 @@
+---
+# ── Cluster topology ─────────────────────────────
+multi_master: true
+k8s_init_node: k8s-master01
+
+# Load balancer type: "haproxy" (on-prem) or "cloud" (external LB)
+#   haproxy — deploys HAProxy + Keepalived on masters, uses haproxy_frontend_port (8443) to avoid conflicting with kube-apiserver on 6443.
+#   cloud   — skips HAProxy/Keepalived, uses external LB on k8s_api_port - The control plane endpoint uses k8s_api_port (6443) since the cloud LB forwards 6443 -> 6443
+lb_type: cloud
+
+# ── Kubernetes ────────────────────────────────────
+kubernetes_version: "1.35.3"
+kubernetes_minor_version: "1.35"
+containerd_version: "2.2.2"
+kube_proxy_disabled: true
+
+# ── Cluster networking ────────────────────────────
+pod_network_cidr: 10.244.0.0/16
+service_network_cidr: 10.96.0.0/12
+cluster_dns: 10.96.0.10
+cluster_domain: cluster.local
+
+# ── API server endpoint ──────────────────────────
+# LB or VIP address that points to master nodes
+k8s_api_vip: 138.199.130.234
+k8s_api_port: 6443
+haproxy_frontend_port: 8443
+
+# Computed endpoint — all templates use this
+control_plane_endpoint: "{{ k8s_api_vip }}:{{ haproxy_frontend_port if (multi_master and lb_type == 'haproxy') else k8s_api_port }}"
+
+# ── Kubelet configuration ────────────────────────
+# https://kubernetes.io/docs/reference/config-api/kubelet-config.v1beta1/
+kubelet_config:
+  cgroupDriver: systemd
+  maxPods: 110
+  serializeImagePulls: false
+  maxParallelImagePulls: 4
+  imageGCHighThresholdPercent: 85
+  imageGCLowThresholdPercent: 80
+  imageMaximumGCAge: 24h
+
+# ── OS prerequisites ─────────────────────────────
+load_kernel_modules:
+  - overlay
+  - br_netfilter

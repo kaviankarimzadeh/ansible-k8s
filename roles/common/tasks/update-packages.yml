@@ -1,0 +1,14 @@
+---
+- name: Update apt cache and upgrade all packages (Debian/Ubuntu)
+  ansible.builtin.apt:
+    update_cache: true
+    upgrade: dist
+    cache_valid_time: 3600
+  when: ansible_facts['os_family'] == "Debian"
+
+- name: Upgrade all packages (RedHat/CentOS)
+  ansible.builtin.dnf:
+    name: "*"
+    state: latest
+    update_cache: true
+  when: ansible_facts['os_family'] == "RedHat"

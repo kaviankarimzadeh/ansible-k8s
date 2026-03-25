@@ -1,0 +1,51 @@
+global_defs {
+    router_id K8S_LB_{{ inventory_hostname }}
+    script_user keepalived_script
+    enable_script_security
+    vrrp_check_unicast_src
+}
+
+vrrp_script chk_haproxy {
+    script "/usr/bin/systemctl is-active --quiet haproxy"
+    interval 2
+    timeout 1
+    fall 2
+    rise 2
+}
+
+vrrp_instance VI_K8S_API {
+    state BACKUP
+    interface {{ keepalived_interface }}
+    virtual_router_id {{ keepalived_router_id }}
+    priority {{ keepalived_priority }}
+    advert_int 1
+
+    nopreempt
+
+    unicast_src_ip {{ ansible_host }}
+    unicast_peer {
+{% for host in groups['k8s_masters'] %}
+{% if hostvars[host]['ansible_host'] != ansible_host %}
+        {{ hostvars[host]['ansible_host'] }}
+{% endif %}
+{% endfor %}
+    }
+
+    authentication {
+        auth_type PASS
+        auth_pass {{ keepalived_auth_pass }}
+    }
+
+    track_script {
+        chk_haproxy
+    }
+
+    virtual_ipaddress {
+        {{ keepalived_vip }}/32 dev {{ keepalived_interface }} label {{ keepalived_interface }}:vip
+    }
+
+    garp_master_delay 1
+    garp_master_repeat 3
+    garp_lower_prio_delay 1
+    garp_lower_prio_repeat 3
+}

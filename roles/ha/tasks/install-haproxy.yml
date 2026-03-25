@@ -1,0 +1,36 @@
+---
+- name: Install HAProxy (Debian/Ubuntu)
+  ansible.builtin.apt:
+    name: "haproxy={{ haproxy_version }}"
+    state: present
+    update_cache: true
+  when: ansible_facts['os_family'] == "Debian"
+
+- name: Install HAProxy (RedHat/CentOS)
+  ansible.builtin.dnf:
+    name: "haproxy-{{ haproxy_version }}"
+    state: present
+  when: ansible_facts['os_family'] == "RedHat"
+
+- name: Allow binding to non-local IP (for VIP) - allows HAProxy to bind to the VIP even when it's not yet assigned to this node
+  ansible.builtin.sysctl:
+    name: net.ipv4.ip_nonlocal_bind
+    value: "1"
+    sysctl_file: /etc/sysctl.d/haproxy.conf
+    reload: true
+    state: present
+
+- name: Deploy HAProxy configuration
+  ansible.builtin.template:
+    src: haproxy.cfg.j2
+    dest: /etc/haproxy/haproxy.cfg
+    mode: "0644"
+    validate: haproxy -c -f %s
+  notify: Restart HAProxy
+
+- name: Enable and start HAProxy
+  ansible.builtin.systemd:
+    name: haproxy
+    state: started
+    enabled: true
+    daemon_reload: true

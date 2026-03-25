@@ -1,0 +1,118 @@
+---
+# ── Check if containerd is already installed and healthy ──
+
+- name: Check if containerd is active
+  ansible.builtin.command: systemctl is-active containerd
+  register: containerd_status
+  changed_when: false
+  failed_when: false
+
+- name: Get installed containerd version
+  ansible.builtin.command: containerd --version
+  register: containerd_installed_version
+  changed_when: false
+  failed_when: false
+
+- name: Set containerd needs install fact
+  ansible.builtin.set_fact:
+    containerd_needs_install: >-
+      {{ containerd_status.rc != 0 or
+         containerd_version not in (containerd_installed_version.stdout | default('')) }}
+
+# ── Add Docker repo (containerd.io source) ───────
+
+- name: Add Docker GPG key (Debian/Ubuntu)
+  ansible.builtin.apt_key:
+    url: https://download.docker.com/linux/{{ ansible_facts['distribution'] | lower }}/gpg
+    state: present
+  when:
+    - ansible_facts['os_family'] == "Debian"
+    - containerd_needs_install
+
+- name: Add Docker repository (Debian/Ubuntu)
+  ansible.builtin.apt_repository:
+    repo: >-
+      deb https://download.docker.com/linux/{{ ansible_facts['distribution'] | lower }}
+      {{ ansible_facts['distribution_release'] }} stable
+    state: present
+  when:
+    - ansible_facts['os_family'] == "Debian"
+    - containerd_needs_install
+
+- name: Add Docker repository (RedHat/CentOS)
+  ansible.builtin.yum_repository:
+    name: docker-ce
+    description: Docker CE Stable
+    baseurl: https://download.docker.com/linux/centos/$releasever/$basearch/stable
+    gpgcheck: true
+    gpgkey: https://download.docker.com/linux/centos/gpg
+    enabled: true
+  when:
+    - ansible_facts['os_family'] == "RedHat"
+    - containerd_needs_install
+
+# ── Install containerd ────────────────────────────
+
+- name: Install containerd.io (Debian/Ubuntu)
+  ansible.builtin.apt:
+    name: "containerd.io={{ containerd_version }}-*"
+    state: present
+    update_cache: true
+    allow_downgrade: true
+  when:
+    - ansible_facts['os_family'] == "Debian"
+    - containerd_needs_install
+
+- name: Install containerd.io (RedHat/CentOS)
+  ansible.builtin.dnf:
+    name: "containerd.io-{{ containerd_version }}"
+    state: present
+    update_cache: true
+  when:
+    - ansible_facts['os_family'] == "RedHat"
+    - containerd_needs_install
+
+# ── Configure containerd ─────────────────────────
+
+- name: Check if containerd config exists
+  ansible.builtin.stat:
+    path: /etc/containerd/config.toml
+  register: containerd_config_file
+
+- name: Create containerd config directory
+  ansible.builtin.file:
+    path: /etc/containerd
+    state: directory
+    mode: "0755"
+  when: not containerd_config_file.stat.exists
+
+- name: Generate default containerd config
+  ansible.builtin.command: containerd config default
+  register: containerd_default_config
+  changed_when: false
+  when: not containerd_config_file.stat.exists
+
+- name: Write containerd config
+  ansible.builtin.copy:
+    dest: /etc/containerd/config.toml
+    content: "{{ containerd_default_config.stdout }}"
+    mode: "0644"
+  notify: Restart containerd
+  when: not containerd_config_file.stat.exists
+
+- name: Ensure systemd cgroup driver is enabled
+  ansible.builtin.lineinfile:
+    path: /etc/containerd/config.toml
+    regexp: '(\s*)SystemdCgroup\s*=\s*false'
+    line: '\1SystemdCgroup = true'
+    backrefs: true
+  notify: Restart containerd
+
+# ── Enable and start containerd ──────────────────
+
+- name: Enable and start containerd
+  ansible.builtin.systemd:
+    name: containerd
+    state: started
+    enabled: true
+    daemon_reload: true

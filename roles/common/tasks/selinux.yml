@@ -1,0 +1,13 @@
+---
+- name: Set SELinux to permissive mode
+  ansible.builtin.command: setenforce 0
+  changed_when: false
+  failed_when: false
+  when: ansible_facts['os_family'] == "RedHat"
+
+- name: Persist SELinux permissive mode
+  ansible.builtin.lineinfile:
+    path: /etc/selinux/config
+    regexp: '^SELINUX=enforcing$'
+    line: 'SELINUX=permissive'
+  when: ansible_facts['os_family'] == "RedHat"

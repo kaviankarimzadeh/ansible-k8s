@@ -1,0 +1,16 @@
+---
+# load_kernel_modules is defined in inventory/group_vars/all.yml
+- name: Load required kernel modules
+  ansible.builtin.modprobe:
+    name: "{{ item }}"
+    state: present
+  loop: "{{ load_kernel_modules }}"
+
+- name: Persist kernel modules across reboots
+  ansible.builtin.copy:
+    dest: /etc/modules-load.d/k8s.conf
+    content: |
+      {% for mod in load_kernel_modules %}
+      {{ mod }}
+      {% endfor %}
+    mode: "0644"
