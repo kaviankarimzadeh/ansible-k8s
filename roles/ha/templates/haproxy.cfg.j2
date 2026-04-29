@@ -19,7 +19,7 @@ defaults
     timeout check 5s
 
 frontend k8s_api
-    bind {{ keepalived_vip }}:{{ haproxy_frontend_port }}
+    bind *:{{ haproxy_frontend_port }}
     mode tcp
     default_backend k8s_api_backend
 

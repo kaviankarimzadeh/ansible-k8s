@@ -16,6 +16,7 @@ kubernetes_version: "1.35.3"
 kubernetes_minor_version: "1.35"
 containerd_version: "2.2.2"
 kube_proxy_disabled: true
+# image_repository: nexus.example.com:5000
 
 # ── Cluster networking ────────────────────────────
 pod_network_cidr: 10.244.0.0/16

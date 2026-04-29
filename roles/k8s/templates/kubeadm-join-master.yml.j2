@@ -8,7 +8,6 @@ discovery:
     caCertHashes:
       - "sha256:{{ kubeadm_ca_cert_hash | default('<generated-by-kubeadm-init>') }}"
 nodeRegistration:
-  criSocket: unix:///var/run/containerd/containerd.sock
   name: "{{ inventory_hostname }}"
   kubeletExtraArgs:
     - name: "node-ip"

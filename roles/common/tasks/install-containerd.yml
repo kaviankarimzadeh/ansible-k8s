@@ -98,6 +98,14 @@
     line: 'disabled_plugins = []'
   changed_when: false
 
+- name: Set sandbox image to private registry
+  ansible.builtin.replace:
+    path: /tmp/containerd-default.toml
+    regexp: 'registry\.k8s\.io/pause'
+    replace: '{{ image_repository }}/pause'
+  changed_when: false
+  when: image_repository is defined
+
 - name: Deploy containerd config
   ansible.builtin.copy:
     src: /tmp/containerd-default.toml

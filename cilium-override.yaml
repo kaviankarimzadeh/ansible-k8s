@@ -1,0 +1,56 @@
+l2announcements:
+  enabled: true
+
+bpf:
+  masquerade: true
+
+pmtuDiscovery:
+  enabled: true
+
+egressGateway:
+  enabled: true
+
+loadBalancer:
+  algorithm: maglev
+  mode: hybrid
+  acceleration: best-effort
+  dsrDispatch: geneve
+
+tunnelProtocol: geneve
+
+gatewayAPI:
+  enabled: true
+  enableAppProtocol: true
+  enableAlpn: true
+
+hubble:
+  enabled: true
+  ui:
+    enabled: true
+  relay:
+    enabled: true
+ 
+prometheus:
+  metricsService: true
+  enabled: true
+
+operator:
+  enabled: true
+  replicas: 3
+
+maglev:
+  hashSeed: 2Ww8vnvQuG/JCbZc
+
+k8sClientRateLimit:
+  burst: 20
+  qps: 10
+
+k8sServiceHost: 138.199.130.234
+k8sServicePort: 6443
+kubeProxyReplacement: true
+
+ipam:
+  mode: "cluster-pool"
+  operator:
+    clusterPoolIPv4PodCIDRList: 10.0.0.0/8   # overall pool
+    clusterPoolIPv4MaskSize: 24               # per-node slic
