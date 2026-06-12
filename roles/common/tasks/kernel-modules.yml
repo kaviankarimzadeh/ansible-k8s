@@ -1,7 +1,7 @@
 ---
 # load_kernel_modules is defined in inventory/group_vars/all.yml
 - name: Load required kernel modules
-  ansible.builtin.modprobe:
+  community.general.modprobe:
     name: "{{ item }}"
     state: present
   loop: "{{ load_kernel_modules }}"

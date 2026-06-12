@@ -7,7 +7,7 @@
 
 - name: Deploy kubeadm join config for control-plane
   ansible.builtin.template:
-    src: roles/k8s/templates/kubeadm-join-master.yml.j2
+    src: kubeadm-join-master.yml.j2
     dest: /etc/kubernetes/kubeadm-join.yml
     mode: "0600"
   vars:

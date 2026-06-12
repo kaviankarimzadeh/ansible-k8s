@@ -1,12 +1,10 @@
 ---
 - name: Set required sysctl parameters for Kubernetes networking
-  ansible.builtin.sysctl:
+  ansible.posix.sysctl:
     name: "{{ item.key }}"
     value: "{{ item.value }}"
     sysctl_file: /etc/sysctl.d/k8s.conf
     reload: true
     state: present
   loop:
-    - { key: net.bridge.bridge-nf-call-iptables, value: "1" }
-    - { key: net.bridge.bridge-nf-call-ip6tables, value: "1" }
     - { key: net.ipv4.ip_forward, value: "1" }

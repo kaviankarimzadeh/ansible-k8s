@@ -13,7 +13,7 @@
   when: ansible_facts['os_family'] == "RedHat"
 
 - name: Allow binding to non-local IP (for VIP) - allows HAProxy to bind to the VIP even when it's not yet assigned to this node
-  ansible.builtin.sysctl:
+  ansible.posix.sysctl:
     name: net.ipv4.ip_nonlocal_bind
     value: "1"
     sysctl_file: /etc/sysctl.d/haproxy.conf

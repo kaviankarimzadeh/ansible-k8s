@@ -1,6 +1,6 @@
 ---
 # ── Cluster topology ─────────────────────────────
-multi_master: true
+multi_master: false
 k8s_init_node: k8s-master01
 
 # Load balancer type: "haproxy" (on-prem) or "cloud" (external LB)
@@ -9,12 +9,12 @@ k8s_init_node: k8s-master01
 lb_type: cloud
 
 # Run kubeadm init/join to bootstrap the cluster (set true when ready)
-cluster_bootstrap: false
+cluster_bootstrap: true
 
 # ── Kubernetes ────────────────────────────────────
-kubernetes_version: "1.35.3"
-kubernetes_minor_version: "1.35"
-containerd_version: "2.2.2"
+kubernetes_version: "1.36.1"
+kubernetes_minor_version: "1.36"
+containerd_version: "2.2.4"
 kube_proxy_disabled: true
 # image_repository: nexus.example.com:5000
 
@@ -26,7 +26,7 @@ cluster_domain: cluster.local
 
 # ── API server endpoint ──────────────────────────
 # LB or VIP address that points to master nodes
-k8s_api_vip: 138.199.130.234
+k8s_api_vip: 46.225.140.38
 k8s_api_port: 6443
 haproxy_frontend_port: 8443
 

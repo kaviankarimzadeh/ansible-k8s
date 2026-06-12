@@ -21,10 +21,20 @@
 
 # ── Add Docker repo (containerd.io source) ───────
 
+- name: Create apt keyrings directory (Debian/Ubuntu)
+  ansible.builtin.file:
+    path: /etc/apt/keyrings
+    state: directory
+    mode: "0755"
+  when:
+    - ansible_facts['os_family'] == "Debian"
+    - containerd_needs_install
+
 - name: Add Docker GPG key (Debian/Ubuntu)
-  ansible.builtin.apt_key:
+  ansible.builtin.get_url:
     url: https://download.docker.com/linux/{{ ansible_facts['distribution'] | lower }}/gpg
-    state: present
+    dest: /etc/apt/keyrings/docker.asc
+    mode: "0644"
   when:
     - ansible_facts['os_family'] == "Debian"
     - containerd_needs_install
@@ -32,8 +42,10 @@
 - name: Add Docker repository (Debian/Ubuntu)
   ansible.builtin.apt_repository:
     repo: >-
-      deb https://download.docker.com/linux/{{ ansible_facts['distribution'] | lower }}
+      deb [signed-by=/etc/apt/keyrings/docker.asc]
+      https://download.docker.com/linux/{{ ansible_facts['distribution'] | lower }}
       {{ ansible_facts['distribution_release'] }} stable
+    filename: docker
     state: present
   when:
     - ansible_facts['os_family'] == "Debian"
@@ -98,13 +110,13 @@
     line: 'disabled_plugins = []'
   changed_when: false
 
-- name: Set sandbox image to private registry
-  ansible.builtin.replace:
-    path: /tmp/containerd-default.toml
-    regexp: 'registry\.k8s\.io/pause'
-    replace: '{{ image_repository }}/pause'
-  changed_when: false
-  when: image_repository is defined
+# - name: Set sandbox image to private registry
+#   ansible.builtin.replace:
+#     path: /tmp/containerd-default.toml
+#     regexp: 'registry\.k8s\.io/pause'
+#     replace: '{{ image_repository }}/pause'
+#   changed_when: false
+#   when: image_repository is defined
 
 - name: Deploy containerd config
   ansible.builtin.copy:

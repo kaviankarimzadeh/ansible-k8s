@@ -10,7 +10,7 @@ keepalived_version: "2.2.8"
 keepalived_vip: "{{ k8s_api_vip }}"
 keepalived_interface: eth0
 keepalived_router_id: 51
-keepalived_auth_pass: K8sHA!2025
+keepalived_auth_pass: K8sHA!2026
 
 # ── API server extra args (uncomment to enable) ──
 # kube_apiserver_extra_args:

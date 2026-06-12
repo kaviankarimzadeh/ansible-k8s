@@ -14,57 +14,40 @@
       tags: ha
       when: multi_master and lb_type == "haproxy"
 
-- name: Deploy kubeadm configs
-  hosts: k8s_cluster
-  become: true
-  tasks:
-    - name: Deploy init config on first master
-      ansible.builtin.import_tasks: roles/k8s/tasks/init-master.yml
-      tags: k8s-config
-      when: inventory_hostname == k8s_init_node
-
-    - name: Deploy join config on additional masters
-      ansible.builtin.import_tasks: roles/k8s/tasks/join-master.yml
-      tags: k8s-config
-      when:
-        - multi_master
-        - node_role == "master"
-        - inventory_hostname != k8s_init_node
-
-    - name: Deploy join config on workers
-      ansible.builtin.import_tasks: roles/k8s/tasks/join-worker.yml
-      tags: k8s-config
-      when: node_role == "worker"
-  tags: k8s-config
-
 # ── Cluster bootstrap ──────────────────────────────────
 - name: Initialize cluster on first master
   hosts: k8s_masters
   become: true
-  tasks:
-    - name: Run kubeadm init
-      ansible.builtin.import_tasks: roles/cluster/tasks/init.yml
-      when: cluster_bootstrap and inventory_hostname == k8s_init_node
   tags: cluster-init
+  tasks:
+    - name: Initialize first control-plane node
+      ansible.builtin.import_role:
+        name: cluster
+        tasks_from: init
+      when: cluster_bootstrap and inventory_hostname == k8s_init_node
 
 - name: Join additional control-plane nodes
   hosts: k8s_masters
   become: true
   serial: 1
+  tags: cluster-join-master
   tasks:
     - name: Join master to cluster
-      ansible.builtin.import_tasks: roles/cluster/tasks/join-master.yml
+      ansible.builtin.import_role:
+        name: cluster
+        tasks_from: join-master
       when:
         - cluster_bootstrap
         - multi_master
         - inventory_hostname != k8s_init_node
-  tags: cluster-join-master
 
 - name: Join worker nodes
   hosts: k8s_workers
   become: true
+  tags: cluster-join-worker
   tasks:
     - name: Join worker to cluster
-      ansible.builtin.import_tasks: roles/cluster/tasks/join-worker.yml
+      ansible.builtin.import_role:
+        name: cluster
+        tasks_from: join-worker
       when: cluster_bootstrap
-  tags: cluster-join-worker

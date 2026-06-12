@@ -5,6 +5,12 @@
     path: /etc/kubernetes/admin.conf
   register: kubeadm_admin_conf
 
+- name: Deploy kubeadm init config
+  ansible.builtin.template:
+    src: kubeadm-init.yml.j2
+    dest: /etc/kubernetes/kubeadm-init.yml
+    mode: "0600"
+
 - name: Run kubeadm init
   ansible.builtin.command: >-
     kubeadm init
@@ -49,9 +55,10 @@
   changed_when: false
   when: multi_master
 
+# Joins read these via hostvars[k8s_init_node], so setting them
+# only on this host is sufficient (no run_once needed).
 - name: Set join credentials as facts
   ansible.builtin.set_fact:
     kubeadm_token: "{{ token_output.stdout }}"
     kubeadm_ca_cert_hash: "{{ ca_hash_output.stdout }}"
     kubeadm_certificate_key: "{{ cert_key_output.stdout_lines[-1] | default('') }}"
-  run_once: true

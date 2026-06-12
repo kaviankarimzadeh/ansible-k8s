@@ -49,11 +49,10 @@
   ansible.builtin.yum_repository:
     name: kubernetes
     description: Kubernetes
-    baseurl: "https://pkgs.k8s.io/core:/stable:/v{{ kubernetes_minor_version }}/rpm/"
+    baseurl: "https://prod-cdn.packages.k8s.io/repositories/isv:/kubernetes:/core:/stable:/v{{ kubernetes_minor_version }}/rpm/"
     gpgcheck: true
-    gpgkey: "https://pkgs.k8s.io/core:/stable:/v{{ kubernetes_minor_version }}/rpm/repodata/repomd.xml.key"
+    gpgkey: "https://prod-cdn.packages.k8s.io/repositories/isv:/kubernetes:/core:/stable:/v{{ kubernetes_minor_version }}/rpm/repodata/repomd.xml.key"
     enabled: true
-    exclude: kubelet kubeadm kubectl cri-tools kubernetes-cni
   when:
     - ansible_facts['os_family'] == "RedHat"
     - kube_tools_needs_install
@@ -87,6 +86,8 @@
     - kube_tools_needs_install
 
 # ── Pin package versions to prevent accidental upgrade ──
+# RedHat: no task needed — the repo's `exclude` already pins the packages,
+# and installs bypass it with `disable_excludes: kubernetes`.
 
 - name: Hold Kubernetes packages (Debian/Ubuntu)
   ansible.builtin.dpkg_selections:
@@ -97,14 +98,6 @@
     - kubeadm
     - kubectl
   when: ansible_facts['os_family'] == "Debian"
-
-- name: Pin Kubernetes packages (RedHat/CentOS)
-  ansible.builtin.lineinfile:
-    path: /etc/yum.conf
-    regexp: '^exclude=.*kubelet.*'
-    line: 'exclude=kubelet kubeadm kubectl'
-    state: present
-  when: ansible_facts['os_family'] == "RedHat"
 
 # ── Enable kubelet ────────────────────────────────
 

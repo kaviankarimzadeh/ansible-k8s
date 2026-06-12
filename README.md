@@ -22,10 +22,9 @@ Deploy and manage highly-available Kubernetes clusters using Ansible. This proje
 │       ├── k8s_masters.yml      # Master node group variables
 │       └── k8s_workers.yml      # Worker node group variables
 └── roles/
-    └── common/                  # Shared tasks for all nodes
-        └── tasks/
-            ├── main.yml         # Role entry point
-            └── update-packages.yml
+    ├── common/                  # OS prep on all nodes (packages, containerd, kube tools)
+    ├── ha/                      # HAProxy + Keepalived on masters (lb_type: haproxy)
+    └── cluster/                 # kubeadm init/join + config templates
 ```
 
 ## Quick Start
@@ -79,6 +78,25 @@ ansible-playbook -i inventory/hosts.yml site.yml
 
 `kubeadm init --config /etc/kubernetes/kubeadm-init.yml --upload-certs`
 `kubeadm join --config /etc/kubernetes/kubeadm-join.yml`
+
+
+## playground commands
+
+```
+ssh-copy-id root@<all nodes>
+ansible -i inventory/hosts.yml k8s_cluster -m ping
+ansible-playbook -i inventory/hosts.yml site.yml --list-tags
+#1
+ansible-playbook -i inventory/hosts.yml site.yml
+or
+#2
+ansible-playbook -i inventory/hosts.yml site.yml --tag common
+ansible-playbook -i inventory/hosts.yml site.yml --tags cluster-init,cluster-join-worker
+ssh root@<master>
+kubectl get nodes -o wide
+```
+
+
 ## License
 
 MIT
